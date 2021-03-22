@@ -4,6 +4,7 @@ from numpy import std
 
 from sklearn.metrics import roc_curve
 from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import KFold
 import numpy as np
 import math
@@ -81,17 +82,16 @@ for filename in filenames:
     ACC.extend(acc)
     DIST.extend(dist)
 
-# diorthwsh dekadikwn
 
-print(len(X1))
+
+
 
 Y1=[]
 Y2=[]
 X1=[]
 X2=[]
 STATE1=[]
-print(len(state))
-print(len(dist))
+
 
 
 X = list(zip(DIST, V, ACC))
@@ -101,18 +101,20 @@ model = LogisticRegression(multi_class='multinomial', solver='lbfgs')
 model.fit(X,state)
 cv = RepeatedStratifiedKFold(n_splits=6, n_repeats=3, random_state=1)
 # evaluate the model and collect the scores
-n_scores = cross_val_score(model, X,state , scoring='accuracy', cv=cv, n_jobs=-1)
+n_scores = cross_val_score(model, X, state, scoring='accuracy', cv=cv, n_jobs=-1)
 # report the model performance
 print('Mean Accuracy: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
 
 
-model.predict_proba(X)
-model.predict(X)
-confusion_matrix(state, model.predict(X))
+y_prob = model.predict_proba(X)
+y_pred = model.predict(X)
 
+threshold = 0.187
+for i in range(len(y_pred)):
+    if y_prob[i][1] > threshold:
+        y_pred[i] = 1
 
-
-cm = confusion_matrix(state, model.predict(X))
+cm = confusion_matrix(state, y_pred)
 
 fig, model = plt.subplots(figsize=(8, 8))
 model.imshow(cm)
@@ -151,19 +153,23 @@ plt.title("State")
 plt.plot(state, color = 'blue', label = 'State')
 plt.show()
 
+ns_probs = [0 for _ in range(len(state))]
+lr_probs = y_prob[:, 1]
 
-
-lr_probs = model.predict_proba(X)
-
-lr_probs = lr_probs[:, 1]
-ns_auc = roc_auc_score(state, model.predict(X))
+ns_auc = roc_auc_score(state, ns_probs)
 lr_auc = roc_auc_score(state, lr_probs)
 # summarize scores
-print('No Skill: ROC AUC=%.3f' % (ns_auc))
-print('Logistic: ROC AUC=%.3f' % (lr_auc))
+print('No Skill: ROC AUC=%.3f' % ns_auc)
+print('Logistic: ROC AUC=%.3f' % lr_auc)
 # calculate roc curves
-ns_fpr, ns_tpr, _ = roc_curve(state, model.predict(X))
-lr_fpr, lr_tpr, _ = roc_curve(state, model.predict(X))
+ns_fpr, ns_tpr, _ = roc_curve(state, ns_probs)
+lr_fpr, lr_tpr, _ = roc_curve(state, lr_probs)
+print('_:', _)
+# find optimal threshold
+lr = lr_tpr - lr_fpr
+optimal_idx = np.argmax(lr)
+optimal_threshold = _[optimal_idx]
+print('Optimal threshold: ', optimal_threshold)
 # plot the roc curve for the model
 pyplot.plot(ns_fpr, ns_tpr, linestyle='--', label='No Skill')
 pyplot.plot(lr_fpr, lr_tpr, marker='.', label='Logistic')
@@ -203,22 +209,22 @@ def evaluate_model(cv):
 ideal, _, _ = evaluate_model(LeaveOneOut())
 print('Ideal: %.3f' % ideal)
 # define folds to test
-folds = range(2,12)
+folds = range(2, 12)
 # record mean and min/max of each set of results
-means, mins, maxs = list(),list(),list()
+means, mins, maxs = list(), list(), list()
 # evaluate each k value
 for k in folds:
-	# define the test condition
-	cv = KFold(n_splits=k, shuffle=True, random_state=1)
-	# evaluate k value
-	k_mean, k_min, k_max = evaluate_model(cv)
-	# report performance
-	print('> folds=%d, accuracy=%.3f (%.3f,%.3f)' % (k, k_mean, k_min, k_max))
-	# store mean accuracy
-	means.append(k_mean)
-	# store min and max relative to the mean
-	mins.append(k_mean - k_min)
-	maxs.append(k_max - k_mean)
+    # define the test condition
+    cv = KFold(n_splits=k, shuffle=True, random_state=1)
+    # evaluate k value
+    k_mean, k_min, k_max = evaluate_model(cv)
+    # report performance
+    print('> folds=%d, accuracy=%.3f (%.3f,%.3f)' % (k, k_mean, k_min, k_max))
+    # store mean accuracy
+    means.append(k_mean)
+    # store min and max relative to the mean
+    mins.append(k_mean - k_min)
+    maxs.append(k_max - k_mean)
 # line plot of k mean values with min/max error bars
 pyplot.errorbar(folds, means, yerr=[mins, maxs], fmt='o')
 # plot the ideal case in a separate color

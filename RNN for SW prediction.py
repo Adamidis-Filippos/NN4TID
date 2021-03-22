@@ -17,17 +17,21 @@ from sklearn.metrics import mean_squared_error
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-
+import numpy as np
+from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import classification_report, confusion_matrix
 
 import keras
 from keras import backend as K
 from keras.layers import Dense
 
 from keras.models import Sequential
+from matplotlib import pyplot
 
 path= r'C:\Users\santo\Desktop\ΔΙΠΛΩΜΑΤΙΚΗ\fil-main\csv'
 filenames = glob.glob(path + "/*.csv")
@@ -206,9 +210,9 @@ kfold = KFold(n_splits=3, shuffle=True)
 for i, (train, test) in enumerate(kfold.split(X)):
 
     model = Sequential()
-    model.add(Dense(25, activation="relu", input_dim=6))
-    model.add(Dense(10, activation="relu", input_dim=25))
-    model.add(Dense(1, activation="sigmoid", input_dim=10))
+    model.add(Dense(150, activation="relu", input_dim=6))
+    model.add(Dense(75, activation="relu", input_dim=150))
+    model.add(Dense(1, activation="sigmoid", input_dim=75))
 
     model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     history = model.fit(X[train], STATE[train], epochs=50, batch_size=4, verbose=True)
@@ -225,15 +229,29 @@ print(accuracy_list)
 #plt.show()
 
 
-threshold = 0.35
+y_pred = model.predict(X)
 
-predictions = model.predict(X)
+threshold = 0.192
+
 predictions_binary = []
-for p in predictions:
-    if p >= threshold:
+for p in y_pred:
+    if p > threshold:
         predictions_binary.append(1)
     else:
         predictions_binary.append(0)
+
+cm = confusion_matrix(STATE,predictions_binary  )
+
+fig, model = plt.subplots(figsize=(8, 8))
+model.imshow(cm)
+model.grid(False)
+model.xaxis.set(ticks=(0, 1), ticklabels=('Predicted 0s', 'Predicted 1s'))
+model.yaxis.set(ticks=(0, 1), ticklabels=('Actual 0s', 'Actual 1s'))
+model.set_ylim(1.5, -0.5)
+for i in range(2):
+    for j in range(2):
+        model.text(j, i, cm[i, j], ha='center', va='center', color='red')
+plt.show()
 
 
 plt.plot(STATE, color='green', label='Given State')
@@ -243,3 +261,27 @@ plt.legend()
 plt.show()
 
 
+ns_probs = [0 for _ in range(len(STATE))]
+lr_probs = predictions_binary
+
+ns_auc = roc_auc_score(STATE, ns_probs)
+lr_auc = roc_auc_score(STATE, lr_probs)
+print('No Skill: ROC AUC=%.3f' % ns_auc)
+print('Logistic: ROC AUC=%.3f' % lr_auc)
+ns_fpr, ns_tpr, _ = roc_curve(STATE, ns_probs)
+lr_fpr, lr_tpr, _ = roc_curve(STATE, y_pred)
+# find optimal thresholds
+lr = lr_tpr - lr_fpr
+optimal_idx = np.argmax(lr)
+optimal_threshold = _[optimal_idx]
+print('Optimal threshold: ', optimal_threshold)
+# plot the roc curve for the model
+pyplot.plot(ns_fpr, ns_tpr, linestyle='--', label='No Skill')
+pyplot.plot(lr_fpr, lr_tpr, marker='.', label='Logistic')
+# axis labels
+pyplot.xlabel('False Positive Rate')
+pyplot.ylabel('True Positive Rate')
+# show the legend
+pyplot.legend()
+# show the plot
+pyplot.show()
