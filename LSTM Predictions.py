@@ -189,7 +189,7 @@ model.add(LSTM(50, input_shape=(df_train.shape[1], df_train.shape[2])))
 model.add(Dense(1))
 model.compile(loss='mae', optimizer='adam')
 # fit network
-history = model.fit(df_train, df_y_train, epochs=25, batch_size=32, validation_data=(df_test, df_y_test), verbose=2, shuffle=False)
+history = model.fit(df_train, df_y_train, epochs=30, batch_size=32, validation_data=(df_test, df_y_test), verbose=2, shuffle=False)
 # plot history
 pyplot.plot(history.history['loss'], label='train')
 pyplot.plot(history.history['val_loss'], label='test')

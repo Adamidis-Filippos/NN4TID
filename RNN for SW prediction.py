@@ -1,4 +1,4 @@
-# arxeio 18: 0,2,"-42,20","27,69","72,53",
+
 
 import math
 from typing import List, Any, Union
@@ -175,6 +175,8 @@ for filename in filenames:
 
 X = zip(DX12, DX23, DV12, DV23, KAVG, Q)
 
+print(len(DX12))
+
 mms = MinMaxScaler()
 X = mms.fit_transform(list(X))
 
@@ -228,12 +230,21 @@ print(accuracy_list)
 #plt.legend()
 #plt.show()
 
-
 y_pred = model.predict(X)
 
-threshold = 0.192
 
+
+threshold = 0.3708
+
+ny_pred =[]
+for i in range(0,len(y_pred)):
+    ny_pred.append(y_pred[i])
 predictions_binary = []
+
+any_pred = []
+for i in range(0,len(y_pred)):
+    any_pred.append(y_pred[i])
+
 for p in y_pred:
     if p > threshold:
         predictions_binary.append(1)
@@ -285,3 +296,81 @@ pyplot.ylabel('True Positive Rate')
 pyplot.legend()
 # show the plot
 pyplot.show()
+
+dr_ind=0
+DR1=[]
+FAR1=[]
+far_ind=0
+
+fp=0
+tp=0
+fn=0
+tn=0
+
+
+for i in range(0,50,1):
+    threshold = i/100
+    for j in range(len(ny_pred)):
+
+        if float(ny_pred[j]) > threshold and float(STATE[j]) == 1:
+                tp = tp + 1
+        elif float(ny_pred[j]) > threshold and float(STATE[j]) == 0:
+                fp = fp + 1
+        elif float(ny_pred[j]) < threshold and float(STATE[j]) == 0:
+                tn = tn + 1
+        elif float(ny_pred[j]) < threshold and float(STATE[j]) == 1:
+                fn = fn + 1
+
+
+
+
+
+    DR1.append(tp/ (tp+fn))
+    FAR1.append(fp/(fp+fn+tn+tp))
+    tp =0
+    fp=0
+    tn=0
+    fn=0
+print(DR1)
+print(FAR1)
+
+
+
+
+
+
+for i in range(50,100,1):
+    threshold = i/100
+    for j in range(len(any_pred)):
+        if float(any_pred[j]) > threshold and float(STATE[j]) == 1:
+            tp = tp + 1
+        elif float(any_pred[j]) < threshold and float(STATE[j]) == 1:
+            fn = fn + 1
+        elif float(any_pred[j]) > threshold and float(STATE[j]) == 0:
+            fp = fp + 1
+
+        elif float(any_pred[j]) < threshold and float(STATE[j]) == 0:
+            tn = tn + 1
+
+    print(tp)
+    print(fn)
+    DR1.append(tp/ (tp+fn))
+    FAR1.append(fp/len(any_pred))
+    dr_ind=0
+    far_ind=0
+    fp=0
+    tp=0
+    fn=0
+    tn=0
+print(DR1)
+print(FAR1)
+
+plt.plot(FAR1,DR1,'o')
+plt.xlabel("FAR")
+plt.ylabel("DR")
+plt.show()
+
+plt.plot(FAR1,DR1)
+plt.xlabel("FAR")
+plt.ylabel("DR")
+plt.show()

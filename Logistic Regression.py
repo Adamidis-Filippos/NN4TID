@@ -109,7 +109,7 @@ print('Mean Accuracy: %.3f (%.3f)' % (mean(n_scores), std(n_scores)))
 y_prob = model.predict_proba(X)
 y_pred = model.predict(X)
 
-threshold = 0.187
+threshold = 0.5
 for i in range(len(y_pred)):
     if y_prob[i][1] > threshold:
         y_pred[i] = 1
@@ -182,12 +182,85 @@ pyplot.legend()
 pyplot.show()
 
 
-#A = list(zip(DIST, V, ACC,state))
+index=1
+DR = []
+dr_ind=0
+for i in range(0,len(y_pred)):
+    if y_pred[i] == 1 and state[i]== 1 :
+        DR.append(1)
+        dr_ind = dr_ind +1
+        index =index +1
+print(len(DR))
 
-#A.plot(x=DIST , y=state , kind='scatter')
-#plt.show()
+DR= dr_ind/len(y_pred)
+print(DR)
+FAR=[]
+far_ind=0
+for i in range(len(y_pred)):
+    if y_pred[i] == 0 and state[i]!= 0 :
+        far_ind= far_ind+1
 
 
+FAR = far_ind/ len(y_pred)
+print(FAR)
+
+ny_pred =[]
+for i in range(0,len(y_pred)):
+    ny_pred.append(y_pred[i])
+
+dr_ind=0
+DR1=[]
+FAR1=[]
+far_ind=0
+
+for i in np.arange(0.0 ,0.5 ,0.1):
+    threshold = i
+    for j in range(len(y_pred)):
+        if y_prob[j][1] > threshold:
+            y_pred[j] = 1
+        else:
+            y_pred[j] = 0
+        if y_pred[j] ==1 and state[j] ==1 :
+            dr_ind = dr_ind +1
+        elif y_pred[j] ==0 and state[j] ==1 :
+            far_ind = far_ind + 1
+    DR1.append(dr_ind/ len(y_pred)) #TPR
+    FAR1.append(far_ind/len(y_pred))
+    dr_ind =0
+    far_ind=0
+print(DR1)
+print(FAR1)
+
+for i in np.arange(0.5 ,1.0 ,0.1):
+    threshold = i
+    for j in range(len(ny_pred)):
+        if y_prob[j][1] < threshold:
+            ny_pred[j] = 0
+        else:
+            ny_pred[j] = 1
+        if ny_pred[j] ==1 and state[j] ==1 :
+            dr_ind = dr_ind +1
+        elif ny_pred[j] ==0 and state[j] ==1 :
+            far_ind = far_ind +1
+    DR1.append(dr_ind/ len(ny_pred)) #TPR
+    FAR1.append(far_ind/len(ny_pred))
+    dr_ind=0
+    far_ind=0
+print(DR1)
+print(FAR1)
+
+
+
+plt.plot(FAR1,DR1,'o')
+plt.xlabel("FAR")
+plt.ylabel("DR")
+plt.show()
+
+
+plt.plot(FAR1,DR1)
+plt.xlabel("FAR")
+plt.ylabel("DR")
+plt.show()
 
 
 def get_model():
