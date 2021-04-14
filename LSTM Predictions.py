@@ -2,6 +2,7 @@ from math import sqrt
 import glob
 import pandas as pd
 from matplotlib import pyplot
+import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import LabelEncoder
@@ -24,7 +25,7 @@ DX12 = []
 DX23 = []
 
 KAVG = []
-q = (0.1923+0.658+0.595+0.134+0.51+0.2099+0.345)/7
+
 
 DV12 = []
 DV23 = []
@@ -156,60 +157,176 @@ for filename in filenames:
         V_shockwave.append(q / k)
     V_SHOCKWAVE += V_shockwave
 
-shift = 5
+# shift = 5
+#
+# shifted_VSW = [float("nan")] * shift #metatopish thesis data
+# shifted_VSW += V_SHOCKWAVE
+# shifted_VSW = shifted_VSW[:-(shift)]
+#
+# df = pd.DataFrame(list(zip(DX12, DX23, DV12, DV23, KAVG, Q, V_SHOCKWAVE, shifted_VSW)))
+# df = df.iloc[shift:]
+#
+# mms = MinMaxScaler()
+# df = mms.fit_transform(df)
+#
+# df = pd.DataFrame(df)
+# df_y = pd.DataFrame(df[7])
+#
+# df_train = df.iloc[:int(len(df) * 0.8)]
+# df_test = df.iloc[int(len(df) * 0.8):]
+# df_y_train = df_y.iloc[:int(len(df_y)*0.8)]
+# df_y_test = df_y.iloc[int(len(df_y)*0.8):]
+#
+# df_train = np.array(df_train.values)
+# df_test = np.array(df_test.values)
+# df_y_train = np.array(df_y_train.values)
+# df_y_test = np.array(df_y_test.values)
+#
+# df_train = df_train.reshape((df_train.shape[0], 1, df_train.shape[1]))
+# df_test = df_test.reshape((df_test.shape[0], 1, df_test.shape[1]))
+#
+# model = Sequential()
+# model.add(LSTM(50, input_shape=(df_train.shape[1], df_train.shape[2])))
+# model.add(Dense(1))
+# model.compile(loss='mae', optimizer='adam')
+# # fit network
+# history = model.fit(df_train, df_y_train, epochs=30, batch_size=32, validation_data=(df_test, df_y_test), verbose=2, shuffle=False)
+# # plot history
+# pyplot.plot(history.history['loss'], label='train')
+# pyplot.plot(history.history['val_loss'], label='test')
+# pyplot.legend()
+# pyplot.show()
+#
+#
+# yhat = model.predict(df_test)
+# df_test = df_test.reshape((df_test.shape[0], df_test.shape[2]))
+#
+# inv_yhat = concatenate((yhat, df_test[:, 1:]), axis=1)
+# inv_yhat = mms.inverse_transform(inv_yhat)
+# inv_yhat = inv_yhat[:,0]
+#
+# df_y_test = df_y_test.reshape((len(df_y_test), 1))
+# inv_y = concatenate((df_y_test, df_test[:, 1:]), axis=1)
+# inv_y = mms.inverse_transform(inv_y)
+# inv_y = inv_y[:,0]
+#
+# pyplot.plot(inv_y, color='red', label='Y')
+# pyplot.plot(inv_yhat, color='blue', label='Y hat')
+# pyplot.legend()
+# pyplot.show()
 
-shifted_VSW = [float("nan")] * shift
-shifted_VSW += V_SHOCKWAVE
-shifted_VSW = shifted_VSW[:-(shift)]
+far = []
+accura = []
+accuracy = []
+tp=0
+tn=0
+fp=0
+fn=0
+index= []
 
-df = pd.DataFrame(list(zip(DX12, DX23, DV12, DV23, KAVG, Q, V_SHOCKWAVE, shifted_VSW)))
-df = df.iloc[shift:]
+for shift in range(20,200,20):
+    STATE_shift = []
+    STATE_shift = [float("nan")] * shift
+    STATE_shift += STATE
+    STATE_shift = STATE_shift[:-(shift)]
 
-mms = MinMaxScaler()
-df = mms.fit_transform(df)
+    LABELS = pd.DataFrame(list(zip(DX12, DX23, DV12, DV23, KAVG, Q, STATE, STATE_shift)))
+    LABELS = LABELS.iloc[shift:]
 
-df = pd.DataFrame(df)
-df_y = pd.DataFrame(df[7])
+    print("Shift is now: ", shift)
 
-df_train = df.iloc[:int(len(df) * 0.8)]
-df_test = df.iloc[int(len(df) * 0.8):]
-df_y_train = df_y.iloc[:int(len(df_y)*0.8)]
-df_y_test = df_y.iloc[int(len(df_y)*0.8):]
+    mms1 = MinMaxScaler()
+    LABELS = mms1.fit_transform(LABELS)
 
-df_train = np.array(df_train.values)
-df_test = np.array(df_test.values)
-df_y_train = np.array(df_y_train.values)
-df_y_test = np.array(df_y_test.values)
+    LABELS = pd.DataFrame(LABELS)
+    df_y = pd.DataFrame(LABELS[7])
 
-df_train = df_train.reshape((df_train.shape[0], 1, df_train.shape[1]))
-df_test = df_test.reshape((df_test.shape[0], 1, df_test.shape[1]))
+    df_train = LABELS.iloc[:int(len(LABELS) * 0.8)]
+    df_test = LABELS.iloc[int(len(LABELS) * 0.8):]
+    df_y_train = df_y.iloc[:int(len(df_y) * 0.8)]
+    df_y_test = df_y.iloc[int(len(df_y) * 0.8):]
 
-model = Sequential()
-model.add(LSTM(50, input_shape=(df_train.shape[1], df_train.shape[2])))
-model.add(Dense(1))
-model.compile(loss='mae', optimizer='adam')
-# fit network
-history = model.fit(df_train, df_y_train, epochs=30, batch_size=32, validation_data=(df_test, df_y_test), verbose=2, shuffle=False)
-# plot history
-pyplot.plot(history.history['loss'], label='train')
-pyplot.plot(history.history['val_loss'], label='test')
-pyplot.legend()
-pyplot.show()
+    df_train = np.array(df_train.values)
+    df_test = np.array(df_test.values)
+    df_y_train = np.array(df_y_train.values)
+    df_y_test = np.array(df_y_test.values)
 
+    df_train = df_train.reshape((df_train.shape[0], 1, df_train.shape[1]))
+    df_test = df_test.reshape((df_test.shape[0], 1, df_test.shape[1]))
 
-yhat = model.predict(df_test)
-df_test = df_test.reshape((df_test.shape[0], df_test.shape[2]))
+    model = Sequential()
+    model.add(LSTM(50, input_shape=(df_train.shape[1], df_train.shape[2])))
+    model.add(Dense(1))
+    model.compile(loss='mae', optimizer='adam')
+    # fit network
+    history = model.fit(df_train, df_y_train, epochs=30, batch_size=32, validation_data=(df_test, df_y_test), verbose=0,
+                        shuffle=False)
+    # plot history
+    title = "Shift : {}".format(shift)
 
-inv_yhat = concatenate((yhat, df_test[:, 1:]), axis=1)
-inv_yhat = mms.inverse_transform(inv_yhat)
-inv_yhat = inv_yhat[:,0]
+    pyplot.plot(history.history['loss'], label='train')
+    pyplot.plot(history.history['val_loss'], label='test')
+    pyplot.title(title)
+    pyplot.legend()
+    pyplot.show()
 
-df_y_test = df_y_test.reshape((len(df_y_test), 1))
-inv_y = concatenate((df_y_test, df_test[:, 1:]), axis=1)
-inv_y = mms.inverse_transform(inv_y)
-inv_y = inv_y[:,0]
+    yhat = model.predict(df_test)
+    df_test = df_test.reshape((df_test.shape[0], df_test.shape[2]))
 
-pyplot.plot(inv_y, color='red', label='Y')
-pyplot.plot(inv_yhat, color='blue', label='Y hat')
-pyplot.legend()
-pyplot.show()
+    inv_yhat = concatenate((yhat, df_test[:, 1:]), axis=1)
+    #inv_yhat = mms1.inverse_transform(inv_yhat)
+    inv_yhat = inv_yhat[:, 0]
+
+    df_y_test = df_y_test.reshape((len(df_y_test), 1))
+    inv_y = concatenate((df_y_test, df_test[:, 1:]), axis=1)
+    #inv_y = mms1.inverse_transform(inv_y)
+    inv_y = inv_y[:, 0]
+    # for i in range(len(inv_yhat)):
+    #     if inv_yhat[i] > 0.8:
+    #         inv_yhat[i]=1
+    #     elif inv_yhat[i]<0.2:
+    #         inv_yhat[i]=0
+
+    for i in range(len(inv_yhat)):
+        accura.append((abs(inv_y[i]-inv_yhat[i])))
+    sum_acc = sum(accura)
+
+    thres = 0.3
+    accuracy.append(1 - (sum_acc / len(inv_yhat)))
+    for i in range(len(inv_y)):
+        if STATE_shift[i+shift] < thres and STATE[i] == 0:
+            tn = tn + 1
+        elif STATE_shift[i+shift] > 1 - thres and STATE[i] == 0:
+            fp = fp + 1
+        elif STATE_shift[i+shift] < thres and STATE[i] == 1:
+            fn = fn + 1
+        elif STATE_shift[i+shift] > 1 - thres and STATE[i] == 1:
+            tp = tp + 1
+    far.append(fn/(fn+tn+fp+tp))
+    index.append(shift)
+
+    pyplot.plot(inv_y, color='red', label='Y')
+    pyplot.plot(inv_yhat, color='blue', label='Y hat')
+    pyplot.title(title)
+    pyplot.legend()
+    pyplot.show()
+
+    tp = 0
+    tn = 0
+    fp = 0
+    fn = 0
+    sum_acc = 0
+
+plt.plot(index,accuracy,'o')
+plt.xlabel("persistence")
+plt.ylabel("accuracy")
+plt.show()
+
+plt.plot(index,accuracy)
+plt.xlabel("persistence")
+plt.ylabel("accuracy")
+plt.show()
+
+# Compare element-wise
+# for x, y in zip(listA, listB):
+#     if x < y: ... # Your code
