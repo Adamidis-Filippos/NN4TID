@@ -215,7 +215,10 @@ for filename in filenames:
 # pyplot.legend()
 # pyplot.show()
 
-far = []
+fnr = []
+
+inaccuracy = []
+DR = []
 accura = []
 accuracy = []
 tp=0
@@ -224,7 +227,7 @@ fp=0
 fn=0
 index= []
 
-for shift in range(20,200,20):
+for shift in range(10,200,10):
     STATE_shift = []
     STATE_shift = [float("nan")] * shift
     STATE_shift += STATE
@@ -232,6 +235,7 @@ for shift in range(20,200,20):
 
     LABELS = pd.DataFrame(list(zip(DX12, DX23, DV12, DV23, KAVG, Q, STATE, STATE_shift)))
     LABELS = LABELS.iloc[shift:]
+
 
     print("Shift is now: ", shift)
 
@@ -245,6 +249,8 @@ for shift in range(20,200,20):
     df_test = LABELS.iloc[int(len(LABELS) * 0.8):]
     df_y_train = df_y.iloc[:int(len(df_y) * 0.8)]
     df_y_test = df_y.iloc[int(len(df_y) * 0.8):]
+
+
 
     df_train = np.array(df_train.values)
     df_test = np.array(df_test.values)
@@ -291,19 +297,22 @@ for shift in range(20,200,20):
         accura.append((abs(inv_y[i]-inv_yhat[i])))
     sum_acc = sum(accura)
 
-    thres = 0.3
+
+    inaccuracy.append(sum_acc/len(inv_yhat))
+
+    thres = 0.99
     accuracy.append(1 - (sum_acc / len(inv_yhat)))
     for i in range(len(inv_y)):
-        if STATE_shift[i+shift] < thres and STATE[i] == 0:
+        if inv_yhat[i] < thres and df_y_test[i] == 0:
             tn = tn + 1
-        elif STATE_shift[i+shift] > 1 - thres and STATE[i] == 0:
+        elif inv_yhat[i] > 1 - thres and df_y_test[i] == 0:
             fp = fp + 1
-        elif STATE_shift[i+shift] < thres and STATE[i] == 1:
+        elif inv_yhat[i] < thres and df_y_test[i] == 1:
             fn = fn + 1
-        elif STATE_shift[i+shift] > 1 - thres and STATE[i] == 1:
+        elif inv_yhat[i] > 1 - thres and df_y_test[i] == 1:
             tp = tp + 1
-    far.append(fn/(fn+tn+fp+tp))
-    index.append(shift)
+    DR.append(tp/(fn+tp))
+    index.append(shift*0.2)
 
     pyplot.plot(inv_y, color='red', label='Y')
     pyplot.plot(inv_yhat, color='blue', label='Y hat')
@@ -311,6 +320,10 @@ for shift in range(20,200,20):
     pyplot.legend()
     pyplot.show()
 
+    print(tp)
+    print(tn)
+    print(fp)
+    print(fn)
     tp = 0
     tn = 0
     fp = 0
@@ -326,6 +339,22 @@ plt.plot(index,accuracy)
 plt.xlabel("persistence")
 plt.ylabel("accuracy")
 plt.show()
+
+plt.plot(DR,accuracy,'o')
+plt.xlabel("DR")
+plt.ylabel("accuracy")
+plt.show()
+
+plt.plot(DR,accuracy,)
+plt.xlabel("DR")
+plt.ylabel("accuracy")
+plt.show()
+
+plt.plot(inaccuracy,accuracy,'o')
+plt.xlabel("inaccuracy")
+plt.ylabel("accuracy")
+plt.show()
+
 
 # Compare element-wise
 # for x, y in zip(listA, listB):
