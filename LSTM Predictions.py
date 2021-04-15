@@ -227,7 +227,7 @@ fp=0
 fn=0
 index= []
 
-for shift in range(10,200,10):
+for shift in range(20,200,20):
     STATE_shift = []
     STATE_shift = [float("nan")] * shift
     STATE_shift += STATE
@@ -300,7 +300,7 @@ for shift in range(10,200,10):
 
     inaccuracy.append(sum_acc/len(inv_yhat))
 
-    thres = 0.99
+    thres = 0.95
     accuracy.append(1 - (sum_acc / len(inv_yhat)))
     for i in range(len(inv_y)):
         if inv_yhat[i] < thres and df_y_test[i] == 0:
@@ -356,6 +356,141 @@ plt.ylabel("accuracy")
 plt.show()
 
 
+
+fnr1 = []
+inaccuracy1 = []
+DR1 = []
+accura11 = []
+accuracy11 = []
+tp=0
+tn=0
+fp=0
+fn=0
+index1= []
+
+for batch_n in range(4,128,8):
+    shift=5
+    STATE_shift = []
+    STATE_shift = [float("nan")] * shift
+    STATE_shift += STATE
+    STATE_shift = STATE_shift[:-(shift)]
+
+    LABELS = pd.DataFrame(list(zip(DX12, DX23, DV12, DV23, KAVG, Q, STATE, STATE_shift)))
+    LABELS = LABELS.iloc[shift:]
+
+
+    print("persistence is now: ", batch_n)
+
+    mms1 = MinMaxScaler()
+    LABELS = mms1.fit_transform(LABELS)
+
+    LABELS = pd.DataFrame(LABELS)
+    df_y = pd.DataFrame(LABELS[7])
+
+    df_train = LABELS.iloc[:int(len(LABELS) * 0.8)]
+    df_test = LABELS.iloc[int(len(LABELS) * 0.8):]
+    df_y_train = df_y.iloc[:int(len(df_y) * 0.8)]
+    df_y_test = df_y.iloc[int(len(df_y) * 0.8):]
+
+
+
+    df_train = np.array(df_train.values)
+    df_test = np.array(df_test.values)
+    df_y_train = np.array(df_y_train.values)
+    df_y_test = np.array(df_y_test.values)
+
+    df_train = df_train.reshape((df_train.shape[0], 1, df_train.shape[1]))
+    df_test = df_test.reshape((df_test.shape[0], 1, df_test.shape[1]))
+
+    model = Sequential()
+    model.add(LSTM(50, input_shape=(df_train.shape[1], df_train.shape[2])))
+    model.add(Dense(1))
+    model.compile(loss='mae', optimizer='adam')
+    # fit network
+    history = model.fit(df_train, df_y_train, epochs=30, batch_size=batch_n, validation_data=(df_test, df_y_test), verbose=0,
+                        shuffle=False)
+    # plot history
+    title = "batch size: {}".format(batch_n)
+
+    pyplot.plot(history.history['loss'], label='train')
+    pyplot.plot(history.history['val_loss'], label='test')
+    pyplot.title(title)
+    pyplot.legend()
+    pyplot.show()
+
+    yhat = model.predict(df_test)
+    df_test = df_test.reshape((df_test.shape[0], df_test.shape[2]))
+
+    inv_yhat = concatenate((yhat, df_test[:, 1:]), axis=1)
+    #inv_yhat = mms1.inverse_transform(inv_yhat)
+    inv_yhat = inv_yhat[:, 0]
+
+    df_y_test = df_y_test.reshape((len(df_y_test), 1))
+    inv_y = concatenate((df_y_test, df_test[:, 1:]), axis=1)
+    #inv_y = mms1.inverse_transform(inv_y)
+    inv_y = inv_y[:, 0]
+    # for i in range(len(inv_yhat)):
+    #     if inv_yhat[i] > 0.8:
+    #         inv_yhat[i]=1
+    #     elif inv_yhat[i]<0.2:
+    #         inv_yhat[i]=0
+
+    for i in range(len(inv_yhat)):
+        accura11.append((abs(inv_y[i]-inv_yhat[i])))
+    sum_acc = sum(accura)
+
+
+    inaccuracy1.append(sum_acc/len(inv_yhat))
+
+    thres = 0.9
+    accuracy11.append(1 - (sum_acc / len(inv_yhat)))
+    for i in range(len(inv_y)):
+        if inv_yhat[i] < thres and df_y_test[i] == 0:
+            tn = tn + 1
+        elif inv_yhat[i] > 1 - thres and df_y_test[i] == 0:
+            fp = fp + 1
+        elif inv_yhat[i] < thres and df_y_test[i] == 1:
+            fn = fn + 1
+        elif inv_yhat[i] > 1 - thres and df_y_test[i] == 1:
+            tp = tp + 1
+    DR1.append(tp/(fn+tp))
+    index1.append(shift*0.2)
+    fnr1.append(fn/(fn+tn))
+    pyplot.plot(inv_y, color='red', label='Y')
+    pyplot.plot(inv_yhat, color='blue', label='Y hat')
+    pyplot.title(title)
+    pyplot.legend()
+    pyplot.show()
+
+    print(tp)
+    print(tn)
+    print(fp)
+    print(fn)
+    tp = 0
+    tn = 0
+    fp = 0
+    fn = 0
+    sum_acc = 0
+
+plt.plot(index1,accuracy11,'o')
+plt.xlabel("persistence")
+plt.ylabel("accuracy")
+plt.show()
+
+plt.plot(index1,accuracy11)
+plt.xlabel("persistence")
+plt.ylabel("accuracy")
+plt.show()
+
+plt.plot(DR1,fnr1,'o')
+plt.xlabel("DR")
+plt.ylabel("fnr")
+plt.show()
+
+plt.plot(DR1,accuracy11)
+plt.xlabel("DR")
+plt.ylabel("accuracy")
+plt.show()
 # Compare element-wise
 # for x, y in zip(listA, listB):
 #     if x < y: ... # Your code
