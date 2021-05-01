@@ -25,6 +25,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import classification_report, confusion_matrix
+from keras.models import model_from_json
+import  os
 
 import keras
 from keras import backend as K
@@ -230,11 +232,24 @@ print(accuracy_list)
 #plt.legend()
 #plt.show()
 
+# for layerNum, layer in enumerate(model.layers):
+#     weights = layer.get_weights()[0]
+#     biases= layer.get_weights()[1]
+#
+#     for toNeuronNum, bias in enumerate(biases):
+#         print(f'{layerNum}B -> L{layerNum+1}N{toNeuronNum} : {bias}')
+#
+#     for fromNeuronNum, wgt in enumerate(weights):
+#         for toNeuronNum, wgt2 in enumerate(wgt):
+#             print(f'L{layerNum}N{fromNeuronNum} -> L{layerNum+1}N{toNeuronNum} = {wgt2}')
+
+
+
 y_pred = model.predict(X)
 
 
 
-threshold = 0.3708
+threshold = 0.5
 
 ny_pred =[]
 for i in range(0,len(y_pred)):
@@ -268,6 +283,8 @@ plt.show()
 plt.plot(STATE, color='green', label='Given State')
 plt.plot(predictions_binary, color='blue', label='Predicted state - Binary Classification')
 plt.title('Model Predictions')
+plt.xlabel("data")
+plt.ylabel("state")
 plt.legend()
 plt.show()
 
@@ -374,3 +391,50 @@ plt.plot(FAR1,DR1)
 plt.xlabel("FAR")
 plt.ylabel("DR")
 plt.show()
+
+
+TP = 0
+FP = 0
+TN = 0
+FN = 0
+DR_PER = []
+FAR_PER = []
+testate = []
+
+for i in range(len(STATE)):
+    if STATE[i] > 0.3:
+        testate.append(1)
+    elif STATE[i] < 0.3:
+        testate.append(0)
+
+for size in range(2, 20):
+    state_comp = []
+    pred_comp = []
+    for i in range(len(testate) - size):
+        state_comp.append(testate[i:i+size])
+        pred_comp.append(predictions_binary[i:i+size])
+
+    for i in range(len(state_comp)):
+        if state_comp[i] == pred_comp[i] and state_comp[i][0] > 0.8:
+            TP += 1
+        elif state_comp[i] != pred_comp[i] and state_comp[i][0] > 0.8:
+            FP += 1
+        elif state_comp[i] == pred_comp[i] and state_comp[i][0] < 0.3:
+            TN += 1
+        elif state_comp[i] != pred_comp[i] and state_comp[i][0] < 0.3:
+            FN += 1
+    DR_PER.append(TP / (TP + FP) if TP + FP != 0 else 0)
+    FAR_PER.append(FP / (FP + TP + TN + FN))
+    TP = 0
+    FP = 0
+    FN = 0
+    TN = 0
+plt.plot(FAR_PER,DR_PER,'o')
+plt.xlabel("FAR FINAL")
+plt.ylabel("DR")
+plt.show()
+
+savedmodel = model.to_json()
+with open("model.json","w") as json_file:
+    json_file.write(savedmodel)
+model.save_weights('Detection DNN.h5')

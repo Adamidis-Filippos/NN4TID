@@ -137,20 +137,44 @@ pyplot.legend()
 # show the plot
 pyplot.show()
 
-#model = SVC()
-#ovo = OneVsOneClassifier(model)
-#ovo.fit(X, state)
-#yhat = ovo.predict(X)
+plt.plot(y_pred,V,'o')
+plt.xlabel("STATE pred")
+plt.ylabel("DV")
+plt.show()
+
+plt.plot(state,V,'o')
+plt.xlabel("STATE")
+plt.ylabel("DV")
+plt.show()
+
+plt.plot(y_pred,DIST,'o')
+plt.xlabel("STATE pred")
+plt.ylabel("DIST")
+plt.show()
+
+plt.plot(state,DIST,'o')
+plt.xlabel("STATE")
+plt.ylabel("DIST")
+plt.show()
 
 plt.figure(1)
 plt.title("Rel. Speed")
 plt.plot(V, color= 'red', label = 'Rel. Speed')
+plt.xlabel("data")
+plt.ylabel("DV")
+
 plt.figure(2)
 plt.title("Rel. Dist")
 plt.plot(DIST, color= 'yellow', label = 'Rel. Distance')
+plt.xlabel("data")
+plt.ylabel("DIST")
+
 plt.figure(3)
 plt.title("State")
 plt.plot(state, color = 'blue', label = 'State')
+plt.xlabel("data")
+plt.ylabel("Pred state")
+
 plt.show()
 
 ns_probs = [0 for _ in range(len(state))]
@@ -181,12 +205,77 @@ pyplot.legend()
 # show the plot
 pyplot.show()
 
+tp = 0
+fp = 0
+tn = 0
+fn = 0
+DR1 = []
+FAR1 = []
+
+for i in range(0,50,1):
+    threshold = i/100
+    for j in range(len(y_pred)):
+
+        if float(y_prob[j][1]) > threshold and float(state[j]) == 1:
+                tp = tp + 1
+        elif float(y_prob[j][1]) > threshold and float(state[j]) == 0:
+                fp = fp + 1
+        elif float(y_prob[j][1]) < threshold and float(state[j]) == 0:
+                tn = tn + 1
+        elif float(y_prob[j][1]) < threshold and float(state[j]) == 1:
+                fn = fn + 1
+
+    DR1.append(tp/ (tp+fn))
+    FAR1.append(fp/(fp+fn+tn+tp))
+    tp =0
+    fp=0
+    tn=0
+    fn=0
+
+print(DR1)
+print(FAR1)
+
+for i in range(50,100,1):
+    threshold = i/100
+    for j in range(len(y_prob)):
+        if float(y_prob[j][1]) > threshold and float(state[j]) == 1:
+            tp = tp + 1
+        elif float(y_prob[j][1]) < threshold and float(state[j]) == 1:
+            fn = fn + 1
+        elif float(y_prob[j][1]) > threshold and float(state[j]) == 0:
+            fp = fp + 1
+
+        elif float(y_prob[j][1]) < threshold and float(state[j]) == 0:
+            tn = tn + 1
+
+    print(tp)
+    print(fn)
+    DR1.append(tp/ (tp+fn))
+    FAR1.append(fp/len(y_pred))
+    dr_ind=0
+    far_ind=0
+    fp=0
+    tp=0
+    fn=0
+    tn=0
+print(DR1)
+print(FAR1)
+
+plt.plot(FAR1,DR1,'o')
+plt.xlabel("FAR")
+plt.ylabel("DR")
+plt.show()
+
+plt.plot(FAR1,DR1)
+plt.xlabel("FAR")
+plt.ylabel("DR")
+plt.show()
 
 index=1
 DR = []
 dr_ind=0
 for i in range(0,len(y_pred)):
-    if y_pred[i] == 1 and state[i]== 1 :
+    if y_pred[i] > 0.8 and state[i]== 1 :
         DR.append(1)
         dr_ind = dr_ind +1
         index =index +1
@@ -212,6 +301,7 @@ dr_ind=0
 DR1=[]
 FAR1=[]
 far_ind=0
+
 
 for i in np.arange(0.0 ,0.5 ,0.1):
     threshold = i
@@ -242,7 +332,7 @@ for i in np.arange(0.5 ,1.0 ,0.1):
             dr_ind = dr_ind +1
         elif ny_pred[j] ==0 and state[j] ==1 :
             far_ind = far_ind +1
-    DR1.append(dr_ind/ len(ny_pred)) #TPR
+    DR1.append(dr_ind/len(ny_pred) ) #TPR
     FAR1.append(far_ind/len(ny_pred))
     dr_ind=0
     far_ind=0
@@ -302,5 +392,7 @@ for k in folds:
 pyplot.errorbar(folds, means, yerr=[mins, maxs], fmt='o')
 # plot the ideal case in a separate color
 pyplot.plot(folds, [ideal for _ in range(len(folds))], color='r')
+pyplot.xlabel("tested data")
+pyplot.ylabel("accuracy")
 # show the plot
 pyplot.show()

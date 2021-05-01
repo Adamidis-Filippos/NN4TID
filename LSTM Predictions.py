@@ -25,7 +25,7 @@ DX12 = []
 DX23 = []
 
 KAVG = []
-
+V2 = []
 
 DV12 = []
 DV23 = []
@@ -110,6 +110,8 @@ for filename in filenames:
     a1.append(a1[-1])
     A1 += a1
 
+    V2 += v2
+
     for i in range(len(v2) - 1):
         a2.append((v2[i] - v2[i+1]) / 0.2)
     a2.append(a2[-1])
@@ -157,66 +159,74 @@ for filename in filenames:
         V_shockwave.append(q / k)
     V_SHOCKWAVE += V_shockwave
 
-# shift = 5
-#
-# shifted_VSW = [float("nan")] * shift #metatopish thesis data
-# shifted_VSW += V_SHOCKWAVE
-# shifted_VSW = shifted_VSW[:-(shift)]
-#
-# df = pd.DataFrame(list(zip(DX12, DX23, DV12, DV23, KAVG, Q, V_SHOCKWAVE, shifted_VSW)))
-# df = df.iloc[shift:]
-#
-# mms = MinMaxScaler()
-# df = mms.fit_transform(df)
-#
-# df = pd.DataFrame(df)
-# df_y = pd.DataFrame(df[7])
-#
-# df_train = df.iloc[:int(len(df) * 0.8)]
-# df_test = df.iloc[int(len(df) * 0.8):]
-# df_y_train = df_y.iloc[:int(len(df_y)*0.8)]
-# df_y_test = df_y.iloc[int(len(df_y)*0.8):]
-#
-# df_train = np.array(df_train.values)
-# df_test = np.array(df_test.values)
-# df_y_train = np.array(df_y_train.values)
-# df_y_test = np.array(df_y_test.values)
-#
-# df_train = df_train.reshape((df_train.shape[0], 1, df_train.shape[1]))
-# df_test = df_test.reshape((df_test.shape[0], 1, df_test.shape[1]))
-#
-# model = Sequential()
-# model.add(LSTM(50, input_shape=(df_train.shape[1], df_train.shape[2])))
-# model.add(Dense(1))
-# model.compile(loss='mae', optimizer='adam')
+shift = 5
+
+shifted_VSW = [float("nan")] * shift #metatopish thesis data
+shifted_VSW += V_SHOCKWAVE
+shifted_VSW = shifted_VSW[:-(shift)]
+
+df = pd.DataFrame(list(zip(DX12, DX23, DV12, DV23, KAVG, Q, V_SHOCKWAVE, shifted_VSW)))
+df = df.iloc[shift:]
+
+mms = MinMaxScaler()
+df = mms.fit_transform(df)
+
+df = pd.DataFrame(df)
+df_y = pd.DataFrame(df[7])
+
+df_train = df.iloc[:int(len(df) * 0.8)]
+df_test = df.iloc[int(len(df) * 0.8):]
+df_y_train = df_y.iloc[:int(len(df_y)*0.8)]
+df_y_test = df_y.iloc[int(len(df_y)*0.8):]
+
+df_train = np.array(df_train.values)
+df_test = np.array(df_test.values)
+df_y_train = np.array(df_y_train.values)
+df_y_test = np.array(df_y_test.values)
+
+df_train = df_train.reshape((df_train.shape[0], 1, df_train.shape[1]))
+df_test = df_test.reshape((df_test.shape[0], 1, df_test.shape[1]))
+
+model = Sequential()
+model.add(LSTM(50, input_shape=(df_train.shape[1], df_train.shape[2])))
+model.add(Dense(1))
+model.compile(loss='mae', optimizer='adam')
 # # fit network
-# history = model.fit(df_train, df_y_train, epochs=30, batch_size=32, validation_data=(df_test, df_y_test), verbose=2, shuffle=False)
+history = model.fit(df_train, df_y_train, epochs=30, batch_size=64, validation_data=(df_test, df_y_test), verbose=2, shuffle=False)
 # # plot history
-# pyplot.plot(history.history['loss'], label='train')
-# pyplot.plot(history.history['val_loss'], label='test')
-# pyplot.legend()
-# pyplot.show()
+pyplot.plot(history.history['loss'], label='train')
+pyplot.plot(history.history['val_loss'], label='test')
+pyplot.ylabel("loss")
+pyplot.xlabel("time")
+pyplot.legend()
+pyplot.show()
 #
 #
-# yhat = model.predict(df_test)
-# df_test = df_test.reshape((df_test.shape[0], df_test.shape[2]))
+yhat = model.predict(df_test)
+df_test = df_test.reshape((df_test.shape[0], df_test.shape[2]))
 #
-# inv_yhat = concatenate((yhat, df_test[:, 1:]), axis=1)
-# inv_yhat = mms.inverse_transform(inv_yhat)
-# inv_yhat = inv_yhat[:,0]
-#
-# df_y_test = df_y_test.reshape((len(df_y_test), 1))
-# inv_y = concatenate((df_y_test, df_test[:, 1:]), axis=1)
-# inv_y = mms.inverse_transform(inv_y)
-# inv_y = inv_y[:,0]
-#
-# pyplot.plot(inv_y, color='red', label='Y')
-# pyplot.plot(inv_yhat, color='blue', label='Y hat')
-# pyplot.legend()
-# pyplot.show()
+inv_yhat = concatenate((yhat, df_test[:, 1:]), axis=1)
+inv_yhat = mms.inverse_transform(inv_yhat)
+inv_yhat = inv_yhat[:,0]
+
+df_y_test = df_y_test.reshape((len(df_y_test), 1))
+inv_y = concatenate((df_y_test, df_test[:, 1:]), axis=1)
+inv_y = mms.inverse_transform(inv_y)
+inv_y = inv_y[:,0]
+
+pyplot.plot(inv_y, color='red', label='Y')
+pyplot.plot(inv_yhat, color='blue', label='Y hat')
+pyplot.ylabel("Vprop")
+pyplot.xlabel("data")
+pyplot.legend()
+pyplot.show()
+
+comp =[]
+#for i in range(int(0.2*len(STATE))):
+ #   comp.append(int(len(STATE) * 0.8):)
 
 fnr = []
-
+state_pred =[]
 inaccuracy = []
 DR = []
 accura = []
@@ -226,8 +236,10 @@ tn=0
 fp=0
 fn=0
 index= []
+TP = 0
 
-for shift in range(20,200,20):
+
+for shift in range(5,200,100):
     STATE_shift = []
     STATE_shift = [float("nan")] * shift
     STATE_shift += STATE
@@ -252,10 +264,15 @@ for shift in range(20,200,20):
 
 
 
+
     df_train = np.array(df_train.values)
     df_test = np.array(df_test.values)
     df_y_train = np.array(df_y_train.values)
     df_y_test = np.array(df_y_test.values)
+
+    #if shift<10:
+       # for i in range(len(df_y_test)):
+            #comp.append(df_y_test)
 
     df_train = df_train.reshape((df_train.shape[0], 1, df_train.shape[1]))
     df_test = df_test.reshape((df_test.shape[0], 1, df_test.shape[1]))
@@ -272,6 +289,8 @@ for shift in range(20,200,20):
 
     pyplot.plot(history.history['loss'], label='train')
     pyplot.plot(history.history['val_loss'], label='test')
+    pyplot.ylabel("loss")
+    pyplot.xlabel("time")
     pyplot.title(title)
     pyplot.legend()
     pyplot.show()
@@ -295,6 +314,8 @@ for shift in range(20,200,20):
 
     for i in range(len(inv_yhat)):
         accura.append((abs(inv_y[i]-inv_yhat[i])))
+        if shift <10 :
+            state_pred.append(inv_yhat[i])
     sum_acc = sum(accura)
 
 
@@ -316,9 +337,13 @@ for shift in range(20,200,20):
 
     pyplot.plot(inv_y, color='red', label='Y')
     pyplot.plot(inv_yhat, color='blue', label='Y hat')
+    pyplot.ylabel("pred_state")
+    pyplot.xlabel("data")
     pyplot.title(title)
     pyplot.legend()
     pyplot.show()
+
+    TP = TP +tp
 
     print(tp)
     print(tn)
@@ -354,7 +379,130 @@ plt.plot(inaccuracy,accuracy,'o')
 plt.xlabel("inaccuracy")
 plt.ylabel("accuracy")
 plt.show()
+print(len(V_SHOCKWAVE))
+print(len(V2))
 
+watch =[]
+graph_per = []
+metrhths = 0
+watch_alerts_no= 0
+for pers in range(0,20,1):
+    metrhths = 0
+    persistence = pers
+    for i in range(len(state_pred)): # change to the latest 20% of the data
+        if float(state_pred[i]) > 0.5 and float(V_SHOCKWAVE[i]) > float(V2[i]): #+ float(V2[i-1]) -float(V2[i-2])):
+            metrhths = metrhths + 1
+        elif state_pred[i] < 0.8 or V2[i] > V_SHOCKWAVE[i] :
+            metrhths = 0
+        if metrhths > persistence:
+            watch_alerts_no =watch_alerts_no + 1
+    print(watch_alerts_no)
+    watch.append(watch_alerts_no)
+    watch_alerts_no = 0
+    graph_per.append(persistence)
+
+plt.plot(graph_per,watch)
+plt.xlabel("persistence")
+plt.ylabel("watch alerts per pers")
+plt.show()
+
+watch_alerts_no1 =0
+watch1 = []
+graph_per1 = []
+
+for pers in range(0,20,1):
+    metrhths1 = 0
+    persistence = pers
+    for i in range(len(comp)):
+        if float(comp[i]) > 0.5 and float(V_SHOCKWAVE[i]) > float(V2[i]): #+ float(V2[i-1]) -float(V2[i-2])):
+            metrhths1 = metrhths1 + 1
+        elif float(comp[i]) < 0.8 or float(V2[i]) > float(V_SHOCKWAVE[i]) :
+            metrhths1 = 0
+        if metrhths1 > persistence:
+            watch_alerts_no1 =watch_alerts_no1 + 1
+    print(watch_alerts_no1)
+    watch1.append(watch_alerts_no1)
+    watch_alerts_no1 = 0
+    graph_per1.append(persistence)
+
+plt.plot(graph_per1,watch1)
+plt.xlabel("persistence")
+plt.ylabel("correct watch alerts")
+plt.show()
+
+DR_PER = []
+FAR_PER = []
+TP = 0
+FP = 0
+TN = 0
+FN = 0
+
+# Threshold - based classification
+for i in range(len(state_pred)):
+    if state_pred[i] > 0.8:
+        state_pred[i] = 1
+    elif state_pred[i] < 0.3:
+        state_pred[i] = 0
+
+print("!!!!!!!!!!!!")
+print(STATE)
+
+for i in range(2,20,1):
+    for j in range(len(STATE)):
+        TEST = []
+        TRUTH = []
+        for z in range (1,i):
+            tst = TEST.append(state_pred[z])
+            trh = TRUTH.append((STATE[z]))
+            #tst=set(TEST)
+            #trh=set(TRUTH)
+        if TEST == TRUTH and float(STATE[j]) > 0.8 :
+            TP += 1
+        elif TEST != TRUTH and float(STATE[j]) > 0.8 :
+            FP += 1
+        elif TEST == TRUTH and float(STATE[j]) < 0.3 :
+            TN += 1
+        else:
+            FN += 1
+
+        TEST.clear()
+        TRUTH.clear()
+    DR_PER.append(TP/(TP+FP) if TP+FP != 0 else 0)
+    FAR_PER.append(FP/(FP+TP+TN+FN))
+
+for size in range(2, 20):
+    state_comp = []
+    pred_comp = []
+    for i in range(len(STATE) - size):
+        state_comp.append(STATE[i:i+size])
+        pred_comp.append(state_pred[i:i+size])
+
+    for i in range(len(state_comp)):
+        if state_comp[i] == pred_comp[i] and state_comp[i][0] > 0.8:
+            TP += 1
+        elif state_comp[i] != pred_comp[i] and state_comp[i][0] > 0.8:
+            FP += 1
+        elif state_comp[i] == pred_comp[i] and state_comp[i][0] < 0.3:
+            TN += 1
+        elif state_comp[i] != pred_comp[i] and state_comp[i][0] < 0.3:
+            FN += 1
+
+    DR_PER.append(TP/(TP+FP) if TP+FP != 0 else 0)
+    FAR_PER.append(FP/(FP+TP+TN+FN))
+    TP = 0
+    FP = 0
+    FN = 0
+    TN = 0
+plt.plot(FAR_PER,DR_PER,'o')
+plt.xlabel("FAR FINAL")
+plt.ylabel("DR")
+plt.show()
+
+ace = 0
+
+for i in range(len(state_pred)):
+    if float(state_pred[i]) > 0.8:
+        ace= ace + 1
 
 
 fnr1 = []
@@ -368,7 +516,7 @@ fp=0
 fn=0
 index1= []
 
-for batch_n in range(4,128,8):
+for batch_n in range(4,128,100):
     shift=5
     STATE_shift = []
     STATE_shift = [float("nan")] * shift
@@ -414,6 +562,8 @@ for batch_n in range(4,128,8):
 
     pyplot.plot(history.history['loss'], label='train')
     pyplot.plot(history.history['val_loss'], label='test')
+    pyplot.ylabel("loss")
+    pyplot.xlabel("data")
     pyplot.title(title)
     pyplot.legend()
     pyplot.show()
@@ -458,6 +608,8 @@ for batch_n in range(4,128,8):
     fnr1.append(fn/(fn+tn))
     pyplot.plot(inv_y, color='red', label='Y')
     pyplot.plot(inv_yhat, color='blue', label='Y hat')
+    pyplot.ylabel("state")
+    pyplot.xlabel("data")
     pyplot.title(title)
     pyplot.legend()
     pyplot.show()
@@ -491,6 +643,10 @@ plt.plot(DR1,accuracy11)
 plt.xlabel("DR")
 plt.ylabel("accuracy")
 plt.show()
+
+json_file = open('savedmodel','r')
+loaded_model_json = json_file.read()
+
 # Compare element-wise
 # for x, y in zip(listA, listB):
 #     if x < y: ... # Your code
